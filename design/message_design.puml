@@ -1,0 +1,89 @@
+@startuml
+skinparam classAttributeIconSize 0
+hide empty members
+
+package your_team_name.clack.message{
+    Message <|-- OptionMessage
+    Message <|-- FileMessage
+    Message <|-- ListUsersMessage
+    Message <|-- HelpMessage
+    Message <|-- LogoutMessage
+    Message <|-- LoginMessage
+    Message <|-- TextMessage
+
+    OptionMessage --[hidden] FileMessage
+    ListUsersMessage --[hidden] LogoutMessage
+    TextMessage --[hidden] LoginMessage
+
+    enum MsgTypeEnum {
+        FILE
+        HELP
+        LISTUSERS
+        LOGIN
+        LOGOUT
+        OPTION
+        TEXT
+    }
+
+    enum OptionEnum {
+        CIPHER_KEY
+        CIPHER_NAME
+        CIPHER_ENABLE
+    }
+
+    abstract class Message {
+        - msgType : MsgTypeEnum <<final>>
+        - timestamp : LocalDate <<final>>
+        - username : String <<final>>
+        + Message(username)
+        + getMsgType() : MsgTypeEnum
+        + getTimestamp() : LocalDate
+        + getUsername() : String
+        + equals(Object) : boolean
+        + hashCode() : int
+        + toString() : String
+    }
+
+    class OptionMessage {
+        - option : OptionEnum <<final>>
+        - value : String <<final>>
+        + OptionMessage(username, option, value)
+        + getOption() : OptionEnum
+        + getValue() : String
+    }
+
+    class FileMessage {
+        - fileContents : String <<final>>
+        - fileName : String <<final>>
+        + FileMessage(username, fileReadPath)
+        + FileMessage(username, fileReadPath, fileSaveName)
+        + getFileContents() : String
+        + getFileName() : String
+    }
+
+    class HelpMessage {
+    + HelpMessage(username)
+    }
+
+    class ListUsersMessage {
+        + ListUsersMessage(username)
+    }
+
+    class LoginMessage {
+        - password : String <<final>>
+        + LoginMessage(username, password)
+        + getPassword() : String
+    }
+
+    class LogoutMessage {
+        + LogoutMessage(username)
+    }
+
+    class TextMessage {
+        - text : String <<final>>
+        + TextMessage(username, text)
+        + getText() : String
+    }
+}
+
+@enduml
