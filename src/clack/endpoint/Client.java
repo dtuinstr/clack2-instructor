@@ -8,6 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.Scanner;
 
 /**
@@ -104,60 +105,20 @@ public class Client {
                 // System.out.println("tokens: " + Arrays.toString(tokens));
 
                 // Construct Message based on user input and send it to server.
-                switch (tokens[0].toUpperCase()) {
-                    case "SEND" -> {
-                        if (tokens.length == 3
-                                && tokens[1].equalsIgnoreCase("FILE")) {
-                            outMsg = new FileMessage(username, tokens[2], tokens[2]);
-                        } else if (tokens.length == 5
-                                && tokens[1].equalsIgnoreCase("FILE")
-                                && tokens[3].equalsIgnoreCase("AS")) {
-                            outMsg = new FileMessage(username, tokens[2], tokens[4]);
-                        } else {
-                            outMsg = new TextMessage(username, userInput);
-                        }
-                    }
-                    case "HELP" -> outMsg = new HelpMessage(username);
-                    case "LIST" -> {
-                        if (tokens.length > 1
-                                && tokens[1].equalsIgnoreCase("USERS")) {
-                            outMsg = new ListUsersMessage(username);
-                        } else {
-                            outMsg = new TextMessage(username, userInput);
-                        }
-                    }
-                    case "LOGIN" -> {
-                        if (tokens.length > 1) {
-                            outMsg = new LoginMessage(username, tokens[1]);
-                        } else {
-                            outMsg = new TextMessage(username, userInput);
-                        }
-                    }
-                    case "LOGOUT" -> outMsg = new LogoutMessage(username);
-                    case "OPTION" -> {
-                        if (tokens.length == 3) {
-                            // What option is being set/queried?
-                            OptionEnum option = switch (
-                                    tokens[1].toUpperCase()) {
-                                case "CIPHER_KEY" -> OptionEnum.CIPHER_KEY;
-                                case "CIPHER_NAME" -> OptionEnum.CIPHER_NAME;
-                                case "CIPHER_ENABLE" -> OptionEnum.CIPHER_ENABLE;
-                                default -> null;    // Not a valid option.
-                            };
-                            // Build appropriate message for that option.
-                            if (option != null) {
-                                outMsg = new OptionMessage(username,
-                                        option, tokens[2]);
-                            } else {    // Not a valid option.
-                                outMsg = new TextMessage(username, userInput);
-                            }
-                        } else {    // Not a valid OptionMessage
-                            outMsg = new TextMessage(username, userInput);
-                        }
-                    }
-                    default ->
-                            // unrecognized token
-                            outMsg = new TextMessage(username, userInput);
+                String command = tokens[0].toUpperCase();
+                // args is everything beyond the first token.
+                String[] args = Arrays.copyOfRange(tokens, 1, tokens.length);
+                outMsg = switch (command) {
+                    case "SEND" -> buildFileMessage(args);
+                    case "HELP" -> buildHelpMessage(args);
+                    case "LIST" -> buildListUsersMessage(args);
+                    case "LOGIN" -> buildLoginMessage(args);
+                    case "LOGOUT" -> buildLogoutMessage(args);
+                    case "OPTION" -> buildOptionMessage(args);
+                    default -> null;
+                };
+                if (outMsg == null) {
+                    outMsg = new TextMessage("username", userInput);
                 }
                 outObj.writeObject(outMsg);
                 outObj.flush();
@@ -175,5 +136,142 @@ public class Client {
 
         System.out.println("Connection to " + hostname + ":" + port
                 + " closed, exiting.");
+    }
+
+    /**
+     * Attempts to build a FileMessage, with contents retrieved from
+     * a fileReadPath given in an array of tokens. The args array
+     * must conform to either the following formats (case-insensitive):
+     * <ul>
+     *   <li>{"FILE", fileReadPath}</li>
+     * * <li>{"FILE", fileReadPath, "AS", fileSaveAsName}</li>
+     * </ul>
+     * If the args is anything else, null is returned. The FileMessage
+     * object returned by this method is created by calling the
+     * FileMessage(username, fileReadPath) constructor if only a
+     * fileReadPath is given, or FileMessage(username, fileReadPath,
+     * fileSaveAsName) if a fileSaveAsName is also given.
+     *
+     * @param args tokenized user input.
+     * @return a FileMessage, or null.
+     * @throws IOException if file at fileReadPath is not readable.
+     */
+    private FileMessage buildFileMessage(String[] args)
+            throws IOException {
+        if (args == null) {
+            return null;
+        }
+        if (args.length == 2 
+                && args[0].equalsIgnoreCase("FILE")) {
+            return new FileMessage(username, args[1]);
+        }
+        if (args.length == 4
+                && args[0].equalsIgnoreCase("FILE")
+                && args[2].equalsIgnoreCase("AS")) {
+            return new FileMessage(username, args[1], args[3]);
+        }
+        return null;
+    }
+
+    /**
+     * Builds a HelpMessage if 'args' is not null. If args
+     * is null, returns null.
+     *
+     * @param args tokenized user input (presently ignored).
+     * @return a HelpMessage, or null.
+     */
+    private HelpMessage buildHelpMessage(String[] args) {
+        if (args == null) {
+            return null;
+        }
+        return new HelpMessage(username);
+    }
+
+    /**
+     * Builds a ListUsersMessage, if args equals {"LIST", "USER", ...}.
+     * Otherwise, returns null.
+     * @param args tokenized user input.
+     * @return a ListUsersMessage, or null.
+     */
+    private ListUsersMessage buildListUsersMessage(String[] args) {
+        if (args == null) {
+            return null;
+        }
+        if (args.length > 1
+                && args[0].equalsIgnoreCase("USERS")) {
+            return new ListUsersMessage(username);
+        }
+        return null;
+    }
+
+    /**
+     * Builds a LoginMessage, if the user has supplied a password.
+     * If the user has not, returns null.
+     * @param args tokenized user input.
+     * @return a LoginMessage, or null.
+     */
+    private LoginMessage buildLoginMessage(String[] args) {
+        if (args == null) {
+            return null;
+        }
+        if (args.length > 1) {
+                return new LoginMessage(username, args[0]);
+        }
+        return null;
+    }
+
+    /**
+     * Builds a LogoutMessage, if args is not null. If it is,
+     * returns null.
+     * @param args tokenized user input (presently ignored).
+     * @return a LogoutMessage, or null.
+     */
+    private LogoutMessage buildLogoutMessage(String[] args) {
+        if (args == null) {
+            return null;
+        }
+        return new LogoutMessage(username);
+    }
+
+    /**
+     * Builds an OptionMessage. If user input is not syntactically
+     * correct for an OptionMessage, returns null. The args array
+     * must be one of
+     * <ul>
+     *     <li>{optionEnum}</li>
+     *     <li>{optionEnum, string}</li>
+     * </ul>
+     * In the first case, builds an OptionMessage that queries for
+     * the server's current value of the option. In the second case
+     * builds an OptionMessage that causes the server to set the
+     * value of the option.
+     *
+     * @param args tokenized user input.
+     * @return an OptionMessage, or null.
+     */
+    private OptionMessage buildOptionMessage(String[] args) {
+        if (args == null) {
+            return null;
+        }
+        if (args.length != 1 && args.length != 2) {
+            return null;
+        }
+        OptionEnum option = switch (args[0].toUpperCase()) {
+            case "CIPHER_KEY",
+                 "CIPHERKEY" -> OptionEnum.CIPHER_KEY;
+            case "CIPHER_NAME",
+                 "CIPHERNAME" -> OptionEnum.CIPHER_NAME;
+            case "CIPHER_ENABLE",
+                 "CIPHERENABLE" ->
+                    OptionEnum.CIPHER_ENABLE;
+            default -> null;    // Not a valid option.
+        };
+        if (option == null) {
+            return null;
+        } else if (args.length == 1) {
+            return new OptionMessage(username, option, null);
+        } else {
+            return new OptionMessage(username, option, args[1]);
+        }
     }
 }
