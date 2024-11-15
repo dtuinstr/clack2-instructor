@@ -48,6 +48,24 @@ public class FileMessage extends Message {
     }
 
     /**
+     * Returns the file contents.
+     *
+     * @return the file contents.
+     */
+    public String getFileContents() {
+        return fileContents;
+    }
+
+    /**
+     * Returns the suggested name for saving the file.
+     *
+     * @return the suggested name for saving the file.
+     */
+    public String getFileName() {
+        return fileName;
+    }
+
+    /**
      * Returns a string representation of this Message.
      *
      * @return a string representation of this Message.
