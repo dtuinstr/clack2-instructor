@@ -10,6 +10,7 @@ public class CaesarCipher extends CharacterCipher {
      * wrap-around). 'key' may be negative, in which case the shift
      * is leftward. A key of 0 is also allowed, but results in the
      * null cipher.
+     *
      * @param key how far to shift each letter.
      */
     public CaesarCipher(int key) {
@@ -24,7 +25,7 @@ public class CaesarCipher extends CharacterCipher {
      * @param key the string whose first letter determines the shift.
      */
     public CaesarCipher(String key) {
-        if (key == null || key.equals("")) {
+        if (key == null || key.isEmpty()) {
             throw new IllegalArgumentException(
                     "Need a non-null, non-empty string");
         }
@@ -37,16 +38,15 @@ public class CaesarCipher extends CharacterCipher {
     }
 
     /**
-     * Prepare cleartext for encrypting. At minimum this requires
-     * removing spaces, punctuation, and non-alphabetic characters,
-     * then uppercasing what's left.
+     * Prepares cleartext for encrypting. For this cipher, it
+     * simply calls CharacterCipher.clean(cleartext).
      *
-     * @param cleartext
+     * @param cleartext the text to prep.
      * @return a version of the cleartext ready for encrypting.
      */
     @Override
     public String prep(String cleartext) {
-        return cleartext.toUpperCase().replaceAll("[^A-Z]", "");
+        return clean(cleartext);
     }
 
     /**
