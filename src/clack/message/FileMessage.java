@@ -20,8 +20,9 @@ public class FileMessage extends Message {
      * Constructs a new FileMessage object by reading the contents of
      * the file at a given path, and using a supplied file name as the
      * suggested saveAs name.
-     * @param username name of the user creating this Message.
-     * @param fileReadPath where to find the file to read.
+     *
+     * @param username       name of the user creating this Message.
+     * @param fileReadPath   where to find the file to read.
      * @param fileSaveAsName name to suggest when saving the file.
      *                       If this String contains any file path
      *                       components, they are removed.
@@ -40,8 +41,9 @@ public class FileMessage extends Message {
 
     /**
      * Convenience constructor. Acts exactly as
-     *  FileMessage(username, fileReadPath, fileReadPath)
-     * @param username name of the user creating this message.
+     * FileMessage(username, fileReadPath, fileReadPath)
+     *
+     * @param username     name of the user creating this message.
      * @param fileReadPath where to find the file to read.
      * @throws IOException if fileReadPath is not a readable file.
      */

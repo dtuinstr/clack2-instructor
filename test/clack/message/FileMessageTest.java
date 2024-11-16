@@ -10,7 +10,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 import static java.time.Duration.between;
 import static org.junit.jupiter.api.Assertions.*;
@@ -72,7 +71,8 @@ class FileMessageTest {
      *          should be OK.</li>
      *     <li>Correct file contents and "save as" filename.</li>
      * </ul>
-     * @throws IOException
+     * @throws IOException if file can't be found/read when it
+     *  should be findable/readable.
      */
     @Test
     void testConstructors() throws IOException {
@@ -116,7 +116,7 @@ class FileMessageTest {
     /**
      * Test getMsgType inherited from Message.
      *
-     * @throws IOException
+     * @throws IOException if test file can't be found or read.
      */
     @Test
     void getMsgType() throws IOException {
@@ -131,7 +131,7 @@ class FileMessageTest {
     /**
      * Test getUsername inherited from Message.
      *
-     * @throws IOException
+     * @throws IOException if test file can't be found or read.
      */
     @Test
     void getUsername() throws IOException {
@@ -149,7 +149,7 @@ class FileMessageTest {
      * the constructor returns, and then testing that the
      * FileMessage timestamp is no more than a second away from "now".
      *
-     * @throws IOException
+     * @throws IOException if test file can't be found or read.
      */
     @Test
     void getTimestamp() throws IOException {
@@ -166,7 +166,8 @@ class FileMessageTest {
      * can be tested, given the timestamp difference between Message
      * object, so we create two otherwise identical FileMessages a
      * short time apart, then make sure the hashCodes are unequal.
-     * @throws IOException
+     *
+     * @throws IOException if test file can't be found or read.
      */
     @Test
     void testHashCode()
