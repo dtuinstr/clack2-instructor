@@ -3,7 +3,7 @@ package clack.message;
 /**
  * Class that signifies the user wishes to log in. Objects of
  * this class carry an additional password field.
- *
+ * <p>
  * This class does not override equals() and hashCode(). Given the
  * precision of the timestamp it is unlikely that any two objects of
  * any Message subclass will ever test equal, or have equal hashCodes.
@@ -18,8 +18,7 @@ public class LoginMessage extends Message {
      * @param username name of user who created this message.
      * @param password user-supplied password.
      */
-    public LoginMessage(String username, String password)
-    {
+    public LoginMessage(String username, String password) {
         super(username, MsgTypeEnum.LOGIN);
         this.password = password;
     }

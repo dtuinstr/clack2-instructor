@@ -6,7 +6,7 @@ package clack.message;
  * an indication of which option is at issue, and what that option's
  * new value should be. The option at issue is indicated with an
  * OptionEnum.
- *
+ * <p>
  * Values of options are carried as Strings, but the server
  * may convert them to a more suitable type when storing them (for
  * example, a CIPHER_ENABLE value might be stored as a boolean). The
@@ -30,11 +30,11 @@ public class OptionMessage extends Message {
     /**
      * Constructs an OptionMessage.
      *
-     * @param username  name of user who created this message.
-     * @param option    the option to set or query.
-     * @param value     if empty or null, an indication that this
-     *                  message is requesting the current option
-     *                  value; otherwise the new value for the option.
+     * @param username name of user who created this message.
+     * @param option   the option to set or query.
+     * @param value    if empty or null, an indication that this
+     *                 message is requesting the current option
+     *                 value; otherwise the new value for the option.
      */
     public OptionMessage(String username, OptionEnum option,
                          String value) {
@@ -54,6 +54,7 @@ public class OptionMessage extends Message {
 
     /**
      * Returns the setting for the option (which may be null).
+     *
      * @return the setting for the option.
      */
     public String getValue() {

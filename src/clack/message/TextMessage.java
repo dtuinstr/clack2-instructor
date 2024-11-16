@@ -14,8 +14,7 @@ public class TextMessage extends Message {
     /**
      * Constructs a TextMessage.
      *
-     * @param username    name of user who created this message.
-     *
+     * @param username name of user who created this message.
      */
     public TextMessage(String username, String text) {
         super(username, MsgTypeEnum.TEXT);
@@ -24,6 +23,7 @@ public class TextMessage extends Message {
 
     /**
      * Returns the text of the message.
+     *
      * @return the text of the message.
      */
     public String getText() {
@@ -32,6 +32,7 @@ public class TextMessage extends Message {
 
     /**
      * Returns this TextMessage as a string.
+     *
      * @return this TextMessage as a string.
      */
     @Override
