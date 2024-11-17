@@ -34,7 +34,8 @@ public class VignereCipher extends CharacterCipher {
 
     /**
      * Prepares cleartext for encrypting. For this cipher, it
-     * simply calls CharacterCipher.clean(cleartext).
+     * simply calls CharacterCipher.clean(cleartext). If cleartext
+     * is null or empty, returns it as it is.
      *
      * @param cleartext the text to prep.
      * @return a version of the cleartext ready for encrypting.
@@ -45,7 +46,8 @@ public class VignereCipher extends CharacterCipher {
     }
 
     /**
-     * Encrypt a string that's been prepared for encryption.
+     * Encrypt a string that's been prepared for encryption. If
+     * preptext is null or empty, returns it as it is.
      *
      * @param preptext a version of a cleartext string, prepared
      *                 for encryption.
@@ -58,7 +60,8 @@ public class VignereCipher extends CharacterCipher {
 
     /**
      * Decrypts an encrypted string. The decrypted text should match
-     * the preptext that was encrypted.
+     * the preptext that was encrypted. If ciphertext is null or
+     * empty, returns it as it is.
      *
      * @param ciphertext the encrypted string to decrypt.
      * @return the decryption of the ciphertext.
@@ -70,13 +73,17 @@ public class VignereCipher extends CharacterCipher {
 
     /**
      * Shifts characters of a string based on the key, either
-     * forward or backward.
+     * forward or backward. If the string is null or empty,
+     * returns it as it is.
      *
      * @param str       the string to shift.
      * @param direction the direction to shift (1 or -1).
      * @return the Vignere-shifted string.
      */
     private String vignereShift(String str, int direction) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
         char[] argChars = str.toCharArray();
         int len = argChars.length;
         char[] resultChars = new char[len];

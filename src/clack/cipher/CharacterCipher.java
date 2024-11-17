@@ -10,7 +10,7 @@ public abstract class CharacterCipher {
      * Removes all non-alphabet characters from a string, and
      * uppercases all remaining letters. This is a utility
      * method, useful in implementing prep(). If the argument
-     * is null, returns null.
+     * is null or empty, returns it as it is.
      *
      * @param str the string to clean
      * @return the cleaned string (which might be empty), or null.
@@ -38,7 +38,7 @@ public abstract class CharacterCipher {
     public static String group(String str, int n) {
         if (n < 1) {
             throw new IllegalArgumentException(
-                    "groups must have 1 or more letters");
+                    "grouping factor must be 1 or more");
         }
         if (str == null || str.isEmpty()) {
             return str;
@@ -95,8 +95,8 @@ public abstract class CharacterCipher {
     /**
      * Returns the string resulting from shifting each character of str
      * by n places, (positive to right, negative to left), with wrap
-     * around at either end of ALPHABET. If the string argument is null,
-     * returns null.
+     * around at either end of ALPHABET. If the string argument is null
+     * or empty, returns it as it is.
      *
      * @param str the string to shift.
      * @param n   the amount to shift each letter.
@@ -120,6 +120,8 @@ public abstract class CharacterCipher {
      * removing spaces, punctuation, and non-alphabetic characters,
      * then uppercasing what's left. Other ciphers, such as PLAYFAIR,
      * may have additional preparation that this method needs to do.
+     * This method's action when cleartext is null or empty is
+     * implementation dependent.
      *
      * @param cleartext the text to prep.
      * @return a version of the cleartext ready for encrypting.
@@ -128,6 +130,8 @@ public abstract class CharacterCipher {
 
     /**
      * Encrypt a string that's been prepared for encryption.
+     * This method's action when cleartext is null or empty is
+     * implementation dependent.
      *
      * @param preptext a version of a cleartext string, prepared
      *                 for encryption.
@@ -137,7 +141,8 @@ public abstract class CharacterCipher {
 
     /**
      * Decrypts an encrypted string. The decrypted text should match
-     * the preptext that was encrypted.
+     * the preptext that was encrypted. This method's action when
+     * cleartext is null or empty is implementation dependent.
      *
      * @param ciphertext the encrypted string to decrypt.
      * @return the decryption of the ciphertext.

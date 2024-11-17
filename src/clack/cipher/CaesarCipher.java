@@ -39,7 +39,8 @@ public class CaesarCipher extends CharacterCipher {
 
     /**
      * Prepares cleartext for encrypting. For this cipher, it
-     * simply calls CharacterCipher.clean(cleartext).
+     * simply calls CharacterCipher.clean(cleartext). If cleartext
+     * is null or empty, returns it as it is.
      *
      * @param cleartext the text to prep.
      * @return a version of the cleartext ready for encrypting.
@@ -50,7 +51,8 @@ public class CaesarCipher extends CharacterCipher {
     }
 
     /**
-     * Encrypt a string that's been prepared for encryption.
+     * Encrypt a string that's been prepared for encryption. If
+     * preptext is null or empty, returns it as it is.
      *
      * @param preptext a version of a cleartext string, prepared
      *                 for encryption.
@@ -63,10 +65,12 @@ public class CaesarCipher extends CharacterCipher {
 
     /**
      * Decrypts an encrypted string. The decrypted text should match
-     * the preptext that was encrypted.
+     * the preptext that was encrypted. If cipherText is null or
+     * empty, returns it as it is.
      *
      * @param ciphertext the encrypted string to decrypt.
      * @return the decryption of the ciphertext.
+     * @throws IllegalArgumentException if ciphertext is null.
      */
     @Override
     public String decrypt(String ciphertext) {
