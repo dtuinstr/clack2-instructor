@@ -1,12 +1,14 @@
 package clack.endpoint;
 
-import clack.message.Message;
-import clack.message.MsgType;
-import clack.message.TextMessage;
+import clack.cipher.CharacterCipher;
+import clack.message.*;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+
+import static clack.message.OptionEnum.CIPHER_ENABLE;
+import static clack.message.OptionEnum.CIPHER_NAME;
 
 /**
  * This is a simple server class for exchanging Message objects
@@ -28,14 +30,25 @@ public class Server
 
     // For strings sent to client.
     private static final String GREETING =
-            "[Server listening. 'Logout' (case insensitive) closes connection.]";
+            "Server listening. Type 'login <password>' to continue.";
+    private static final String LOGIN_BAD =
+            "Invalid username/password.";
+    private static final String LOGIN_OK =
+            "Login successful. 'logout' to exit, 'help' for help.";
     private static final String GOOD_BYE =
-            "[Closing connection, good-bye.]";
+            "Server closing connection, good-bye.";
+    private static final String HELP_STR =      // TODO fill in HELP_STR
+            "This is the Help.";
 
     // Object variables.
     private final int port;
     private final String serverName;
     private final boolean SHOW_TRAFFIC = true;      // FOR DEBUGGING
+    private String optionCipherKey = null;
+    private String optionCipherName = null;
+    private String optionCipherEnable = null;
+    private CharacterCipher cipher = null;
+    private boolean cipherEnabled = false;
 
     /**
      * Creates a server for exchanging Message objects.
@@ -67,6 +80,18 @@ public class Server
     }
 
     /**
+     * Checks password for validity for a given username.
+     *
+     * @param password the password to check.
+     * @return true iff password is valid for the username.
+     */
+    private boolean passwordValid(String username, String password) {
+       StringBuffer sb = new StringBuffer(password);
+       String pwReverse = new String(sb.reverse());
+       return pwReverse.equals(username);
+    }
+
+    /**
      * Starts this server, listening on the port it was
      * constructed with.
      *
@@ -78,55 +103,116 @@ public class Server
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server starting on port " + port + ".");
             System.out.println("Ctrl + C to exit.");
-            try (
-                    // Wait for connection.
-                    Socket clientSocket = serverSocket.accept();
+            while(true) {
+                try (
+                        // Wait for connection.
+                        Socket clientSocket = serverSocket.accept();
 
-                    // Build streams on the socket.
-                    ObjectInputStream inObj =
-                            new ObjectInputStream(clientSocket.getInputStream());
-                    ObjectOutputStream outObj =
-                            new ObjectOutputStream(clientSocket.getOutputStream());
-            )
-            {
-                Message inMsg;
-                Message outMsg;
+                        // Build streams on the socket.
+                        ObjectInputStream inObj =
+                                new ObjectInputStream(clientSocket.getInputStream());
+                        ObjectOutputStream outObj =
+                                new ObjectOutputStream(clientSocket.getOutputStream());
+                ) {
+                    Message inMsg;
+                    Message outMsg;
 
-                // Connection made. Greet client.
-                outMsg = new TextMessage(serverName, GREETING);
-                outObj.writeObject(outMsg);
-                outObj.flush();
-                if (SHOW_TRAFFIC) {
-                    System.out.println("=> " + outMsg);
-                }
-
-                // Converse with client.
-                do {
-                    inMsg = (Message) inObj.readObject();
-                    if (SHOW_TRAFFIC) {
-                        System.out.println("<= " + inMsg);
-                    }
-
-                    // Process the received message
-                    outMsg = switch (inMsg.getMsgType()) {
-                        case MsgType.LISTUSERS ->
-                                new TextMessage(serverName, "LISTUSERS requested");
-                        case MsgType.LOGOUT ->
-                                new TextMessage(serverName, GOOD_BYE);
-                        case MsgType.TEXT ->
-                                new TextMessage(serverName,
-                                "TEXT: '" + ((TextMessage) inMsg).getText() + "'");
-                    };
-
+                    // Connection made. Request login.
+                    String password;
+                    do {
+                        outMsg = new TextMessage(serverName, GREETING);
+                        outObj.writeObject(outMsg);
+                        outObj.flush();
+                        if (SHOW_TRAFFIC) {
+                            System.out.println("=> " + outMsg);
+                        }
+                        inMsg = (Message) inObj.readObject();
+                        if (inMsg.getMsgType() != MsgTypeEnum.LOGIN) {
+                            outMsg = new TextMessage(serverName, LOGIN_BAD);
+                            outObj.writeObject(outMsg);
+                            outObj.flush();
+                            break;
+                        }
+                    } while (passwordValid(inMsg.getUsername(),
+                            ((LoginMessage) inMsg).getPassword()));
+                    outMsg = new TextMessage(serverName,LOGIN_OK);
                     outObj.writeObject(outMsg);
                     outObj.flush();
-                    if (SHOW_TRAFFIC) {
-                        System.out.println("=> " + outMsg);
-                    }
-                } while (inMsg.getMsgType() != MsgType.LOGOUT);
 
-                System.out.println("=== Terminating connection. ===");
-            }   // Streams and socket closed by try-with-resources.
-        } // Server socket closed by try-with-resources.
+                    // Login successful. Converse with client.
+                    do {
+                        inMsg = (Message) inObj.readObject();
+                        if (SHOW_TRAFFIC) {
+                            System.out.println("<= " + inMsg);
+                        }
+
+                        // Process the received message
+                        outMsg = switch (inMsg.getMsgType()) {
+                            case FILE -> inMsg;     // just turn the FileMessage around.
+                            case HELP -> new TextMessage(serverName, HELP_STR);
+                            case LISTUSERS -> new TextMessage(serverName, "LISTUSERS requested");
+                            case LOGIN -> new TextMessage(serverName, "Already logged in.");
+                            case LOGOUT -> new TextMessage(serverName, GOOD_BYE);
+                            case OPTION -> handleOptionMsg((OptionMessage) inMsg);
+                            case TEXT -> new TextMessage(serverName,
+                                    "TEXT: '" + ((TextMessage) inMsg).getText() + "'");
+                        };
+
+                        outObj.writeObject(outMsg);
+                        outObj.flush();
+                        if (SHOW_TRAFFIC) {
+                            System.out.println("=> " + outMsg);
+                        }
+                    } while (inMsg.getMsgType() != MsgTypeEnum.LOGOUT);
+
+                    System.out.println("=== Terminating connection. ===");
+                }   // Streams and socket closed by try-with-resources.
+            }   // end while(true)
+        }   // Server socket closed by try-with-resources.
+    }
+
+    /**
+     * Set or query an option. If an option is set, call a
+     * method to change the state of the server to meet the
+     * option settings. A query is indicated by an OptionMessage
+     * with a null or empty
+     * @param oMsg an OptionMessage with a query or new setting.
+     * @return
+     */
+    private TextMessage handleOptionMsg(OptionMessage oMsg) {
+        OptionEnum opt = oMsg.getOption();
+        String val = oMsg.getValue();
+        String reply = null;
+
+        reply = switch (opt) {
+            case CIPHER_KEY -> {
+                if (!val.isEmpty()) {
+                    optionCipherKey = val;
+                    reCipher();
+                }
+                yield "option CIPHER_KEY: '" + optionCipherKey + "'";
+            }
+            case CIPHER_NAME -> {
+                if (!val.isEmpty()) {
+                    optionCipherName = val;
+                    reCipher();
+                }
+                yield "option CIPHER_NAME: '" + optionCipherName + "'";
+            }
+            case CIPHER_ENABLE -> {
+                if (!val.isEmpty()) {
+                    optionCipherEnable = val;
+                    reCipher();
+                }
+                yield "option CIPHER_ENABLE: '" + optionCipherEnable + "'";
+            }
+        };  // end switch
+
+        return new TextMessage(serverName, reply);
+    }
+
+    // TODO Implement this.
+    private void reCipher() {
+
     }
 }
