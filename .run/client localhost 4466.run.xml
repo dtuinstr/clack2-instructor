@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="client localhost 4466" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="Clack" />
+    <module name="clack2-instructor" />
+    <option name="PROGRAM_PARAMETERS" value="client localhost 4466" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
