@@ -17,6 +17,9 @@ class CharacterCipherTest {
         assertEquals("", clean(" "));
         assertEquals("A", clean("\n\t a \t \n "));
         assertEquals("ABBBC", clean(" a \n b Bb \t c\n"));
+        // clean() should be idempotent.
+        String s = clean("'Twas brillig, and the slithy Toves ...");
+        assertEquals(s, clean(s));
     }
 
     @Test
