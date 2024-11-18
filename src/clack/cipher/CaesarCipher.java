@@ -1,5 +1,8 @@
 package clack.cipher;
 
+/**
+ * This class implements the classical Caesar cipher.
+ */
 public class CaesarCipher extends CharacterCipher {
 
     private final int key;

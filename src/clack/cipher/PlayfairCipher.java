@@ -1,5 +1,8 @@
 package clack.cipher;
 
+/**
+ * This class implements the classical Playfair cipher.
+ */
 public class PlayfairCipher extends CharacterCipher {
 
     private final char[][] matrix = new char[5][5];

@@ -1,5 +1,8 @@
 package clack.cipher;
 
+/**
+ * This class implements the classical Vignere cipher.
+ */
 public class VignereCipher extends CharacterCipher {
 
     private final int FORWARD = 1;      // shift forward

@@ -23,7 +23,7 @@ public abstract class CharacterCipher {
     }
 
     /**
-     * Return a copy of a string, but reformatted into groups of
+     * Returns a copy of a string, but reformatted into groups of
      * n non-whitespace characters, with groups separated
      * by a space. The last group may have fewer than <em>n</em>
      * characters. If n < 1, throws IllegalArgumentException;
@@ -116,7 +116,7 @@ public abstract class CharacterCipher {
     }
 
     /**
-     * Prepare cleartext for encrypting. At minimum this requires
+     * Prepares cleartext for encrypting. At minimum this requires
      * removing spaces, punctuation, and non-alphabetic characters,
      * then uppercasing what's left. Other ciphers, such as PLAYFAIR,
      * may have additional preparation that this method needs to do.
@@ -129,7 +129,7 @@ public abstract class CharacterCipher {
     public abstract String prep(String cleartext);
 
     /**
-     * Encrypt a string that's been prepared for encryption.
+     * Encrypts a string that's been prepared for encryption.
      * This method's action when cleartext is null or empty is
      * implementation dependent.
      *
