@@ -19,7 +19,7 @@ public abstract class CharacterCipher {
         if (str == null) {
             return null;
         }
-        return str.trim().toUpperCase().replaceAll("[^A-Z]", "");
+        return str.toUpperCase().replaceAll("[^A-Z]", "");
     }
 
     /**
