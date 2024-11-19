@@ -19,7 +19,7 @@ class PseudoOneTimePadTest {
             the world.
             """;
 
-    // POTPs taking a long for the key.
+    // POTPs taking a 'long' for the key.
     static PseudoOneTimePad otp0;
     static PseudoOneTimePad otp1;
     // POTPs taking a String for the key.
