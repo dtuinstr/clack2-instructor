@@ -52,7 +52,7 @@ public class Client
         this.hostname = hostname;
         this.port = port;
         this.username = username;
-        this.prompt = "> ";
+        this.prompt = hostname + ":" + port + "> ";
     }
 
     /**
@@ -96,45 +96,48 @@ public class Client
             inMsg = (Message) inObj.readObject();
             System.out.println(switch (inMsg.getMsgType()) {
                 case FILE -> "FILE message received:" + inMsg;
-                case TEXT -> "[" + hostname + "] "
-                        + ((TextMessage) inMsg).getText();
+                case TEXT -> ((TextMessage) inMsg).getText();
                 default -> "UNEXPECTED MESSAGE: " + inMsg;
             });
 
             // Conversation: user gives command, server replies.
-            do
-            {
-                // Get user input. Loop on whitespace.
-                String[] tokens;
-                do {
-                    System.out.print(prompt);
-                    userInput = keyboard.nextLine();
-                    tokens = userInput.trim().split("\\s+");
-                } while (tokens.length == 0 || tokens[0].isEmpty());
-                // DEBUG
-                // System.out.println("tokens: " + Arrays.toString(tokens));
+            do {
+                do { // get valid Message object from user input.
+                    // Get user input. Loop on whitespace.
+                    String[] tokens;
+                    do {
+                        System.out.print(prompt);
+                        userInput = keyboard.nextLine();
+                        tokens = userInput.trim().split("\\s+");
+                    } while (tokens.length == 0 || tokens[0].isEmpty());
 
-                // Construct Message based on user input and send it to server.
-                String command = tokens[0].toUpperCase();
-                // 'args' is every token beyond the first. Build a Message
-                // based on them. NOTE: if a build<Something>() method cannot
-                // build the requested message it throws an
-                // IllegalArgumentException, and the catch clause builds a
-                // TextMessage with the user input instead.
-                String[] args = Arrays.copyOfRange(tokens, 1, tokens.length);
-                try {
-                    outMsg = switch (command) {
-                        case "SEND" -> buildFileMessage(args);
-                        case "HELP" -> buildHelpMessage(args);
-                        case "LIST" -> buildListUsersMessage(args);
-                        case "LOGIN" -> buildLoginMessage(args);
-                        case "LOGOUT" -> buildLogoutMessage(args);
-                        case "OPTION" -> buildOptionMessage(args);
-                        default -> new TextMessage("username", userInput);
-                    };
-                } catch (IllegalArgumentException e) {
-                    outMsg = new TextMessage("username", userInput);
-                }
+                    // Construct Message based on input and send it to server.
+                    // The build...() methods throw IllegalArgumentException
+                    // if a message cannot be built.
+                    // 'command' is first token, 'args' a copy of all the rest.
+                    String command = tokens[0].toUpperCase();
+                    String[] args = Arrays.copyOfRange(tokens, 1, tokens.length);
+                    try {
+                        outMsg = switch (command) {
+                            case "SEND" -> buildFileMessage(args);
+                            case "HELP" -> buildHelpMessage(args);
+                            case "LIST" -> buildListUsersMessage(args);
+                            case "LOGIN" -> buildLoginMessage(args);
+                            case "LOGOUT" -> buildLogoutMessage(args);
+                            case "OPTION" -> buildOptionMessage(args);
+                            default -> new TextMessage("username", userInput);
+                        };
+                    } catch (IllegalArgumentException e) {
+                        if (command.equals("SEND")) { // syntax or IO exception
+                            System.out.println("SEND FILE problem: "
+                                    + e.getMessage());
+                            outMsg = null;
+                        } else {
+                            outMsg = new TextMessage("username", userInput);
+                        }
+                    }
+                } while (outMsg == null);
+
                 outObj.writeObject(outMsg);
                 outObj.flush();
 
@@ -142,8 +145,7 @@ public class Client
                 inMsg = (Message) inObj.readObject();
                 System.out.println(switch (inMsg.getMsgType()) {
                     case FILE -> "FILE message received:" + inMsg;
-                    case TEXT -> "[" + hostname + "] " +
-                            ((TextMessage) inMsg).getText();
+                    case TEXT -> ((TextMessage) inMsg).getText();
                     default -> "UNEXPECTED MESSAGE: " + inMsg;
                 });
             } while (outMsg.getMsgType() != LOGOUT);
@@ -188,7 +190,8 @@ public class Client
                 return new FileMessage(username, args[1], args[3]);
             }
         } catch (IOException e) {
-            throw new IllegalArgumentException("IO error encountered");
+            throw new IllegalArgumentException(
+                    "File not found or not readable");
         }
         throw new IllegalArgumentException("Invalid SEND FILE syntax");
     }
