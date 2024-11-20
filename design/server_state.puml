@@ -14,8 +14,8 @@ SendLoginConfirm --> CmdWait : TextMsg>
 CheckLogin --> SendLoginFail : invalid
 SendLoginFail --> SendGreeting : TextMsg>
 
-CmdWait -up-> SayGoodbye : >LogoutMsg
-SayGoodbye -up-> ConnectionWait : TextMsg>
+CmdWait -up-> SendGoodbye : >LogoutMsg
+SendGoodbye -up-> ConnectionWait : TextMsg>
 
 CmdWait --> BuildHelpReply : >HelpMsg
 CmdWait --> BuildUserListReply : >ListUsersMsg
