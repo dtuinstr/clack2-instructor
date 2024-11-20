@@ -24,18 +24,32 @@ CmdWait --> BuildOptionReply : >OptionMsg w/o setting
 SetOption --> BuildOptionReply
 
 ''''''''''
-CmdWait --> SaveFile : >FileMsg
-SaveFile --> BuildSaveOKReply
-SaveFile --> BuildSaveFailReply
-BuildSaveOKReply --> SendTextReply
-BuildSaveFailReply --> SendTextReply
+'CmdWait --> SaveFile : >FileMsg
+'SaveFile --> BuildSaveOKReply
+'SaveFile --> BuildSaveFailReply
+'BuildSaveOKReply --> SendReply
+'BuildSaveFailReply --> SendReply
+CmdWait --> filedc : >FileMsg
+
+state "FileMsg Handling Choice" as filedc {
+    [*] --> SaveFile
+    SaveFile --> BuildOKReply : succeed
+    SaveFile --> BuildFailReply : fail
+    --
+    [*] --> BuildTextAckReply
+    --
+    [*] --> BuildFileReply
+}
+filedc --> SendReply
+
+
 ''''''''''
 CmdWait --> BuildEchoReply : >TextMsg
-BuildHelpReply --> SendTextReply
-BuildUserListReply --> SendTextReply
-BuildOptionReply --> SendTextReply
-BuildEchoReply --> SendTextReply
+BuildHelpReply --> SendReply
+BuildUserListReply --> SendReply
+BuildOptionReply --> SendReply
+BuildEchoReply --> SendReply
 
-SendTextReply --> CmdWait : TextMsg>
+SendReply --> CmdWait : TextMsg or\n FileMsg>
 
 @enduml
