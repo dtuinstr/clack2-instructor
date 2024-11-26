@@ -7,6 +7,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -44,7 +45,10 @@ public class Client
      * @throws IllegalArgumentException if port not in range [1-49151]
      */
     public Client(String hostname, int port, String username)
+            throws NoSuchAlgorithmException
     {
+        ClientGUI cGUI = new ClientGUI();
+
         if (port < 1 || port > 49151) {
             throw new IllegalArgumentException(
                     "Port " + port + " not in range 1 - 49151.");
@@ -64,6 +68,7 @@ public class Client
      * @throws IllegalArgumentException if port not in range [1-49151]
      */
     public Client(String hostname, int port)
+            throws NoSuchAlgorithmException
     {
         this(hostname, port, DEFAULT_USERNAME);
     }
@@ -289,12 +294,9 @@ public class Client
             throw new IllegalArgumentException("Invalid OPTION syntax");
         }
         OptionEnum option = switch (args[0].toUpperCase()) {
-            case "CIPHER_KEY",
-                 "CIPHERKEY" -> OptionEnum.CIPHER_KEY;
-            case "CIPHER_NAME",
-                 "CIPHERNAME" -> OptionEnum.CIPHER_NAME;
-            case "CIPHER_ENABLE",
-                 "CIPHERENABLE" -> OptionEnum.CIPHER_ENABLE;
+            case "CIPHER_KEY" -> OptionEnum.CIPHER_KEY;
+            case "CIPHER_NAME" -> OptionEnum.CIPHER_NAME;
+            case "CIPHER_ENABLE" -> OptionEnum.CIPHER_ENABLE;
             default -> null;    // Not a valid option.
         };
         if (option == null) {
@@ -305,4 +307,5 @@ public class Client
             return new OptionMessage(username, option, args[1]);
         }
     }
+
 }
