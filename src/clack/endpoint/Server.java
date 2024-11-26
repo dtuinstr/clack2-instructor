@@ -1,6 +1,6 @@
 package clack.endpoint;
 
-import clack.cipher.CharacterCipher;
+import clack.cipher.CipherManager;
 import clack.message.*;
 
 import java.io.IOException;
@@ -8,7 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Properties;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * This is a simple server class for exchanging Message objects
@@ -37,12 +37,15 @@ public class Server
             "Login successful. 'logout' to exit, 'help' for help.";
     private static final String GOOD_BYE =
             "Server closing connection, good-bye.";
-    private static final String HELP_STR =  """
+    private static final String HELP_STR = """
             HELP
             LIST USERS
             LOGIN
             LOGOUT
-            OPTION optionName {optionSetting}
+            OPTION CIPHER_ENABLE { TRUE | YES | ON | 1 | FALSE | NO | OFF | 0 }
+            OPTION CIPHER_KEY    { new_key }
+            OPTION CIPHER_NAME   { CAESAR_CIPHER | NULL_CIPHER | PLAYFAIR_CIPHER
+                                   | PSEUDO_ONE_TIME_PAD | VIGNERE_CIPHER }
             SEND FILE filepath {AS filename}
             
             Any other entry is sent as a text message.
@@ -52,9 +55,7 @@ public class Server
     private final int port;
     private final String serverName;
     private final boolean SHOW_TRAFFIC = true;      // FOR DEBUGGING
-    private final Properties options;
-    private CharacterCipher cipher = null;
-    private boolean cipherEnabled = false;
+    private final CipherManager cipherMgr;
 
     /**
      * Creates a server for exchanging Message objects.
@@ -62,9 +63,11 @@ public class Server
      * @param port       the port to listen on.
      * @param serverName the name to use when constructing Message objects.
      * @throws IllegalArgumentException if port not in range [1024, 49151].
+     * @throws NoSuchAlgorithmException if cipher is PseudoOneTimePad and
+     *                                  the SHA1PRNG implementation cannot be found.
      */
     public Server(int port, String serverName)
-            throws IllegalArgumentException
+            throws IllegalArgumentException, NoSuchAlgorithmException
     {
         if (port < 1024 || port > 49151) {
             throw new IllegalArgumentException("Port " + port
@@ -72,10 +75,7 @@ public class Server
         }
         this.port = port;
         this.serverName = serverName;
-        this.options = new Properties();
-        for (OptionEnum oe : OptionEnum.values()) {
-            options.setProperty(oe.toString(), "");
-        }
+        this.cipherMgr = new CipherManager();
     }
 
     /**
@@ -84,8 +84,11 @@ public class Server
      *
      * @param port the port to listen on.
      * @throws IllegalArgumentException if port not in range [1024, 49151].
+     * @throws NoSuchAlgorithmException if cipher is PseudoOneTimePad and
+     *                                  the SHA1PRNG implementation cannot be found.
      */
     public Server(int port)
+            throws NoSuchAlgorithmException
     {
         this(port, DEFAULT_SERVERNAME);
     }
@@ -130,14 +133,11 @@ public class Server
                     // Login successful. Converse with client.
                     converse(inObj, outObj);
 
-                    // They asked to log out, and our last part of
-                    // the conversation was a good-bye message.
-                    inObj.close();
-                    outObj.close();
-                    clientSocket.close();
-
                     System.out.println("=== Terminating connection. ===");
-                }   // Streams and socket ensured closed by try-with-resources.
+                }  catch (IOException e) {
+                    System.out.println(
+                            "=== Abnormal end: " + e + " ===");
+                }   // Streams and socket closed by try-with-resources.
             }   // end while(true)
         }   // Server socket closed by try-with-resources.
     }
@@ -148,11 +148,11 @@ public class Server
      * user sends a LoginMessage with valid username and password.
      * This acts as a gatekeeper to the main conversation.
      *
-     * @param inObj ObjectInputStream from which to read Messages.
+     * @param inObj  ObjectInputStream from which to read Messages.
      * @param outObj ObjectOutputStream on which our replies are sent.
-     * @throws IOException if stream read/write fails.
+     * @throws IOException            if stream read/write fails.
      * @throws ClassNotFoundException if inObj produces an object of
-     * unknown class.
+     *                                unknown class.
      */
     private void userLogin(ObjectInputStream inObj, ObjectOutputStream outObj)
             throws IOException, ClassNotFoundException
@@ -186,7 +186,8 @@ public class Server
 
     /**
      * Converse with a logged-in user.
-     * @param inObj ObjectInputStream to read Messages from.
+     *
+     * @param inObj  ObjectInputStream to read Messages from.
      * @param outObj ObjectOutputStream to write Message to.
      */
     private void converse(ObjectInputStream inObj, ObjectOutputStream outObj)
@@ -201,16 +202,21 @@ public class Server
             }
 
             // Process the received message
-            outMsg = switch (inMsg.getMsgType()) {
-                case FILE -> inMsg;     // just turn the FileMessage around.
-                case HELP -> new TextMessage(serverName, HELP_STR);
-                case LISTUSERS -> new TextMessage(serverName, "LISTUSERS requested");
-                case LOGIN -> new TextMessage(serverName, "Already logged in.");
-                case LOGOUT -> new TextMessage(serverName, GOOD_BYE);
-                case OPTION -> handleOptionMsg((OptionMessage) inMsg);
-                case TEXT -> new TextMessage(serverName, "TEXT: '"
-                        + ((TextMessage) inMsg).getText() + "'");
-            };
+            try {
+                outMsg = switch (inMsg.getMsgType()) {
+                    case FILE -> inMsg;     // just turn the FileMessage around.
+                    case HELP -> new TextMessage(serverName, HELP_STR);
+                    case LISTUSERS -> new TextMessage(serverName, "LISTUSERS requested");
+                    case LOGIN -> new TextMessage(serverName, "Already logged in.");
+                    case LOGOUT -> new TextMessage(serverName, GOOD_BYE);
+                    case OPTION -> new TextMessage(serverName,
+                            cipherMgr.process((OptionMessage) inMsg));
+                    case TEXT -> new TextMessage(serverName, "TEXT: '"
+                            + ((TextMessage) inMsg).getText() + "'");
+                };
+            } catch (Exception e) {
+                outMsg = new TextMessage(serverName, "ERROR: " + e.getMessage());
+            }
 
             outObj.writeObject(outMsg);
             outObj.flush();
@@ -218,40 +224,5 @@ public class Server
                 System.out.println("=> " + outMsg);
             }
         } while (inMsg.getMsgType() != MsgTypeEnum.LOGOUT);
-    }
-
-    /**
-     * Queries or sets an option. If getValue() is null or empty,
-     * returns a TextMessage showing the current value of the
-     * requested option (the option is given by getOption()).
-     * If getValue() is anything else, sets the requested option
-     * to that value and returns a TextMessage showing the
-     * option's new value.
-     *
-     * @param oMsg an OptionMessage.
-     * @return a TextMessage showing the option's setting at
-     * the moment this method returns.
-     */
-    private TextMessage handleOptionMsg(OptionMessage oMsg)
-    {
-        OptionEnum opt = oMsg.getOption();
-        String optStr = opt.toString();
-        String val = oMsg.getValue();
-
-        if (val != null) {
-            options.setProperty(optStr, val);
-            resetCipher();
-        }
-
-        String reply = "option " + optStr
-                + ": '" + options.getProperty(optStr) + "'";
-
-        return new TextMessage(serverName, reply);
-    }
-
-    // TODO Implement this.
-    private void resetCipher()
-    {
-
     }
 }
