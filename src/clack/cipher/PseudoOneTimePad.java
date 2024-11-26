@@ -76,8 +76,12 @@ public class PseudoOneTimePad extends CharacterCipher {
      * internal pseudo-random number generator.
      *
      * @param key the seed phrase for the underlying PRNG.
+     * @throws IllegalArgumentException if key == null.
      */
     public PseudoOneTimePad(String key) throws NoSuchAlgorithmException {
+        if (key == null) {
+            throw new IllegalArgumentException("null not allowed for key");
+        }
         /*
          * hashCode() returns an int, of 32 bits. Assuming there's
          * about 1 bit of entropy per character in English (estimates
