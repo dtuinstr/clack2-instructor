@@ -5,6 +5,15 @@ package clack.cipher;
  */
 public class NullCipher extends CharacterCipher
 {
+    /**
+     * Constructs a null cipher. The key argument doesn't do anything and
+     * is not stored; it's there so the constructor signature rhymes with
+     * that of the other ciphers.
+     * @param key
+     */
+    public NullCipher(String key) {
+        return;
+    }
 
     /**
      * Returns the cleartext string unchanged.
