@@ -78,7 +78,11 @@ public class PlayfairCipher extends CharacterCipher {
         int i = 0;
         while (i < sb.length() - 1) {
             if (sb.charAt(i) == sb.charAt(i + 1)) {
-                sb.insert(i + 1, 'X');
+                if (sb.charAt(i) == 'X') {
+                    sb.insert(i + 1, 'Z');
+                } else {
+                    sb.insert(i + 1, 'X');
+                }
             }
             i += 2;
         }
