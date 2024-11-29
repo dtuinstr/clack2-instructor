@@ -46,6 +46,10 @@ public class ClientGUI
 
     // Other
     private final CipherManager cipherManager;
+    // When testing, one-time pad needs a copy of the cipher manager to
+    // simulate the other end's pad, so pads stay in sync.
+    private final boolean TESTING = true;
+    private final CipherManager cipherManagerOther;
 
     /**
      * Constructs client GUI. Sets up GUI and wires up functionality.
@@ -129,7 +133,6 @@ public class ClientGUI
         JPanel cipherOptionPanel = createBoxPanel(BoxLayout.PAGE_AXIS,
                 cipherNameEnabledItem, cipherKeyItem);
         cipherOptionPanel.setBorder(ETCHED_BORDER);
-        //cipherOptionPanel.setAlignmentX(0);
 
         // Control Buttons
         JPanel controlButtonPanel = new JPanel();
@@ -201,14 +204,20 @@ public class ClientGUI
         clearBtn.setEnabled(true);
         connectBtn.setEnabled(true);
 
-        // Initialize cipher manager
+        // Initialize cipher managers
         cipherManager = new CipherManager();
-        setCipherManagerToOptions();
+        setCipherManagerToOptions(cipherManager);
+        cipherManagerOther = new CipherManager();
+        setCipherManagerToOptions(cipherManagerOther);
 
+        //
         // Actions
+        //
         cipherEnableCheckBox.addActionListener(event -> {
             if (cipherEnableCheckBox.isSelected()) {
-                setCipherManagerToOptions();
+                setCipherManagerToOptions(cipherManager);
+                setCipherManagerToOptions(cipherManagerOther);
+                disableAll(cipherNameCombo, cipherKeyField);
             } else {
                 enableAll(cipherNameCombo, cipherKeyField);
             }
@@ -256,13 +265,21 @@ public class ClientGUI
             String text = textEntryField.getText();
             String response = "> " + text;
             if (cipherEnableCheckBox.isSelected()) {
-                // re-do response
+                // response w/ encryption
                 String prepText = cipherManager.prep(text);
                 String cipherText = cipherManager.encrypt(prepText);
+                String decrypted;
+                if (TESTING && cipherManager.getCipherName() ==
+                        CipherNameEnum.PSEUDO_ONE_TIME_PAD) {
+                    decrypted = cipherManagerOther.decrypt(cipherText);
+                } else {
+                    decrypted = cipherManager.decrypt(cipherText);
+                }
                 response =
                         "Clear > " + text + "\n"
                                 + "Prepped > " + prepText + "\n"
-                                + "Encrypted > " + cipherText + "\n";
+                                + "Encrypted > " + cipherText + "\n"
+                                + "Decrypted > " + decrypted + "\n";
             }
             conversationArea.append(response);
             textEntryField.setText("");
@@ -306,14 +323,14 @@ public class ClientGUI
         frame.setVisible(true);
     }
 
-    private void setCipherManagerToOptions()
+    private void setCipherManagerToOptions(CipherManager cm)
     {
         String cipherName = String.valueOf(cipherNameCombo.getSelectedItem());
         String key = String.valueOf(cipherKeyField.getText());
         try {
-            cipherManager.setEnabled(cipherEnableCheckBox.isSelected());
-            cipherManager.setKey(key);
-            cipherManager.setCipher(cipherName);
+            cm.setEnabled(cipherEnableCheckBox.isSelected());
+            cm.setKey(key);
+            cm.setCipher(cipherName);
         } catch (IllegalArgumentException e) {
             JOptionPane.showMessageDialog(
                     frame,
