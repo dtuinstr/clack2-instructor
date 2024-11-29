@@ -29,11 +29,14 @@ public class CipherManager
     /**
      * Creates a new CipherManager with the given option settings.
      *
-     * @throws NoSuchAlgorithmException if cipher is PseudoOneTimePad and
-     *                                  the SHA1PRNG implementation cannot be found.
+     * @param enabled initial state: enabled or disabled.
+     * @param cne     cipher name enum: what kind of cipher to use.
+     * @param key     the key to use.
+     * @throws IllegalArgumentException if cipher cannot be instantiated, or
+     *                                  key is invalid for the cipher.
      */
     public CipherManager(boolean enabled, CipherNameEnum cne, String key)
-            throws NoSuchAlgorithmException
+            throws IllegalArgumentException
     {
         this.enabled = enabled;
         this.cipherName = cne;
@@ -42,14 +45,28 @@ public class CipherManager
     }
 
     /**
+     * Creates a new CipherManager with the given option settings.
+     *
+     * @param enabled initial state: enabled or disabled.
+     * @param cns     cipher name enum (as string): what kind of cipher to use.
+     * @param key     the key to use.
+     * @throws IllegalArgumentException if cipher cannot be instantiated, or
+     *                                  key is invalid for the cipher,
+     *                                  or string does not name a cipher.
+     */
+    public CipherManager(boolean enabled, String cns, String key)
+            throws IllegalArgumentException
+    {
+        this(enabled, CipherNameEnum.valueOf(cns), key);
+    }
+
+    /**
      * Creates a new CipherManager with default settings (disabled,
      * NULL_CIPHER, "key").
-     *
-     * @throws NoSuchAlgorithmException if default cipher is ever changed to
-     *                                  PseudoOneTimePad, and the SHA1PRNG implementation cannot be found.
-     */
+     * @throws IllegalArgumentException if cipher cannot be instantiated, or
+     *                                  key is invalid for the cipher.
+    */
     public CipherManager()
-            throws NoSuchAlgorithmException
     {
         this(false, CipherNameEnum.NULL_CIPHER, "key");
     }
@@ -124,11 +141,11 @@ public class CipherManager
      * sets the current cipher to the new cipher object.
      *
      * @param cipherName the name of the cipher type to use.
-     * @throws NoSuchAlgorithmException if cipher is PseudoOneTimePad and
-     *                                  the SHA1PRNG implementation cannot be found.
+     * @throws IllegalArgumentException if cipher cannot be instantiated, or
+     *                                  current key is invalid for the cipher.
      */
-    public void setCipherName(CipherNameEnum cipherName)
-            throws NoSuchAlgorithmException
+    public void setCipher(CipherNameEnum cipherName)
+            throws IllegalArgumentException
     {
         this.cipherName = cipherName;
         updateCipher();
@@ -140,14 +157,14 @@ public class CipherManager
      * sets the current cipher to the new cipher object.
      *
      * @param str the name of the cipher type to use, as a string.
-     * @throws IllegalArgumentException if str does not match the toString()
-     *                                  of any CipherNameEnum.
+     * @throws IllegalArgumentException if cipher cannot be instantiated, or
+     *                                  current key is invalid for the cipher,
+     *                                  or string does not name a cipher.
      */
-    public void setCipherName(String str)
-            throws NoSuchAlgorithmException
+    public void setCipher(String str)
+            throws IllegalArgumentException
     {
-        this.cipherName = CipherNameEnum.valueOf(str.toUpperCase());
-        updateCipher();
+        setCipher(CipherNameEnum.valueOf(str.toUpperCase()));
     }
 
     /**
@@ -156,11 +173,10 @@ public class CipherManager
      * key, and sets the current cipher to the new cipher object.
      *
      * @param key the key for the current cipher.
-     * @throws NoSuchAlgorithmException if cipher is PseudoOneTimePad and
-     *                                  the SHA1PRNG implementation cannot be found.
+     * @throws IllegalArgumentException if key is invalid for the cipher.
      */
     public void setKey(String key)
-            throws NoSuchAlgorithmException
+            throws IllegalArgumentException
     {
         this.key = key;
         updateCipher();
@@ -170,19 +186,25 @@ public class CipherManager
      * Create a new cipher object based on the current values of the "key"
      * and "cipherName" options, and makes it the current cipher object.
      *
-     * @throws NoSuchAlgorithmException if PseudoOneTimePad cannot be
-     *                                  created because its underlying PRNG algorithm is not available.
+     * @throws IllegalArgumentException if cipher cannot be instantiated, or
+     *                                  key is invalid for the cipher.
      */
     private void updateCipher()
-            throws NoSuchAlgorithmException
+            throws IllegalArgumentException
     {
-        cipher = switch (cipherName) {
-            case CAESAR_CIPHER -> new CaesarCipher(key);
-            case NULL_CIPHER -> new NullCipher(key);
-            case PLAYFAIR_CIPHER -> new PlayfairCipher(key);
-            case PSEUDO_ONE_TIME_PAD -> new PseudoOneTimePad(key);
-            case VIGNERE_CIPHER -> new VignereCipher(key);
-        };
+        try {
+            cipher = switch (cipherName) {
+                case CAESAR_CIPHER -> new CaesarCipher(key);
+                case NULL_CIPHER -> new NullCipher(key);
+                case PLAYFAIR_CIPHER -> new PlayfairCipher(key);
+                case PSEUDO_ONE_TIME_PAD -> new PseudoOneTimePad(key);
+                case VIGNERE_CIPHER -> new VignereCipher(key);
+            };
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException(
+                    "Pseudo One Time Pad not available: "
+                            + e.getMessage());
+        }
     }
 
     /**
@@ -213,14 +235,14 @@ public class CipherManager
             try {
                 switch (om.getOption()) {
                     case CIPHER_KEY -> setKey(om.getValue());
-                    case CIPHER_NAME -> setCipherName(om.getValue());
+                    case CIPHER_NAME -> setCipher(om.getValue());
                     case CIPHER_ENABLE -> setEnabled(om.getValue());
                 }
             } catch (Exception e) {
                 reply = "FAIL: " + e.getMessage() + ". ";
             }
         }
-        // Whether message is query or setting report back the
+        // Whether message is query or setting, report back the
         // option and its setting.
         String val = switch (om.getOption()) {
             case CIPHER_KEY -> getKey();

@@ -1,13 +1,12 @@
 package clack.endpoint;
 
+import clack.cipher.CipherManager;
 import clack.cipher.CipherNameEnum;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EtchedBorder;
 import java.awt.*;
-
-// TODO Implement cipher option application to entered text.
 
 public class ClientGUI
 {
@@ -34,13 +33,19 @@ public class ClientGUI
 
     // Bottom-level GUI components (that hold values of importance).
     private final String[] cipherNames;
-    private final JComboBox<String> cipherNameField;
+    private final JComboBox<String> cipherNameCombo;
     private final JCheckBox cipherEnableCheckBox;
     private final JTextField cipherKeyField;
     private final JTextField hostnameField;
     private final JTextField portField;
     private final JTextField usernameField;
     private final JTextField textEntryField;
+
+    // Top-level GUI component
+    private final JFrame frame;
+
+    // Other
+    private final CipherManager cipherManager;
 
     /**
      * Constructs client GUI. Sets up GUI and wires up functionality.
@@ -68,21 +73,21 @@ public class ClientGUI
     public ClientGUI()
     {
         //
-        // Create bottom-level GUI components, with default values.
+        // Create bottom-level GUI components.
         //
         cipherNames = CipherNameEnum.asStringArray();
-        cipherNameField = new JComboBox<>(cipherNames);
-        cipherNameField.setSelectedIndex(0);
+        cipherNameCombo = new JComboBox<>(cipherNames);
+        cipherNameCombo.setSelectedIndex(0);
         cipherEnableCheckBox = new JCheckBox();
         cipherEnableCheckBox.setEnabled(false);
         cipherKeyField = new JTextField(KEY_COLS);
-        cipherKeyField.setText("theKey");
+        cipherKeyField.setText("THEKEY");
         hostnameField = new JTextField(HOST_COLS);
         portField = new JTextField(PORT_COLS);
         usernameField = new JTextField(USERNAME_COLS);
         textEntryField = new JTextField(TEXT_COLS);
         // Place each in its own panel with a label (an "item")
-        JPanel cipherNameItem = createItem("Cipher Name", cipherNameField);
+        JPanel cipherNameItem = createItem("Cipher Name", cipherNameCombo);
         JPanel cipherEnabledItem = createItem("Enabled", cipherEnableCheckBox);
         JPanel cipherKeyItem = createItem("Cipher Key", cipherKeyField);
         JPanel hostnameItem = createItem("Host Name", hostnameField);
@@ -183,34 +188,38 @@ public class ClientGUI
         mainPanel.add(conversationPanel, BorderLayout.CENTER);
         mainPanel.add(textEntryItem, BorderLayout.SOUTH);
 
-        JFrame frame = new JFrame("Clack");
+        frame = new JFrame("Clack");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(
                 new BoxLayout(frame.getContentPane(), BoxLayout.LINE_AXIS));
         frame.add(leftPanel);
         frame.add(mainPanel);
 
-        // Some components should be enabled at the beginning.
+        // Additional component initialization.
         cipherEnableCheckBox.setEnabled(true);
+        cipherEnableCheckBox.setSelected(false);
         clearBtn.setEnabled(true);
         connectBtn.setEnabled(true);
 
+        // Initialize cipher manager
+        cipherManager = new CipherManager();
+        setCipherManagerToOptions();
+
         // Actions
-        cipherEnableCheckBox.addActionListener( event -> {
+        cipherEnableCheckBox.addActionListener(event -> {
             if (cipherEnableCheckBox.isSelected()) {
-                disableAll(cipherNameField, cipherKeyField);
+                setCipherManagerToOptions();
             } else {
-                enableAll(cipherNameField, cipherKeyField);
+                enableAll(cipherNameCombo, cipherKeyField);
             }
         });
-
         clearBtn.addActionListener(event ->
                 conversationArea.setText(""));
         helpBtn.addActionListener(event ->
                 conversationArea.append("Help: clicked\n"));
         listusersBtn.addActionListener( event ->
                 conversationArea.append("List Users: clicked\n"));
-        loginBtn.addActionListener( event -> {
+        loginBtn.addActionListener(event -> {
             String result = JOptionPane.showInputDialog(
                     frame,
                     "Enter password for " + usernameField.getText(),
@@ -226,7 +235,7 @@ public class ClientGUI
             }
             conversationArea.append(result);
         });
-        logoutBtn.addActionListener( event -> {
+        logoutBtn.addActionListener(event -> {
             String[] options = {"Yes", "Cancel"};
             int result = JOptionPane.showOptionDialog(
                     frame,
@@ -244,7 +253,18 @@ public class ClientGUI
             conversationArea.append("" + result);
         });
         textEntryField.addActionListener(event -> {
-            conversationArea.append("> " + textEntryField.getText() + '\n');
+            String text = textEntryField.getText();
+            String response = "> " + text;
+            if (cipherEnableCheckBox.isSelected()) {
+                // re-do response
+                String prepText = cipherManager.prep(text);
+                String cipherText = cipherManager.encrypt(prepText);
+                response =
+                        "Clear > " + text + "\n"
+                                + "Prepped > " + prepText + "\n"
+                                + "Encrypted > " + cipherText + "\n";
+            }
+            conversationArea.append(response);
             textEntryField.setText("");
         });
         connectBtn.addActionListener( event -> {
@@ -284,6 +304,27 @@ public class ClientGUI
         // pack it and go
         frame.pack();
         frame.setVisible(true);
+    }
+
+    private void setCipherManagerToOptions()
+    {
+        String cipherName = String.valueOf(cipherNameCombo.getSelectedItem());
+        String key = String.valueOf(cipherKeyField.getText());
+        try {
+            cipherManager.setEnabled(cipherEnableCheckBox.isSelected());
+            cipherManager.setKey(key);
+            cipherManager.setCipher(cipherName);
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(
+                    frame,
+                    "Problem with " + cipherName + ": "
+                            + e.getMessage()
+                            + ". Please try a different cipher or key.",
+                    "Cipher Problem",JOptionPane.ERROR_MESSAGE
+            );
+            cipherEnableCheckBox.setSelected(false);
+            enableAll(cipherNameCombo, cipherKeyField);
+        }
     }
 
     /**
