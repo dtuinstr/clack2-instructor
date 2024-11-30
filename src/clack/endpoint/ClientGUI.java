@@ -7,6 +7,7 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EtchedBorder;
 import java.awt.*;
+import static javax.swing.BoxLayout.*;
 
 public class ClientGUI
 {
@@ -14,18 +15,18 @@ public class ClientGUI
     // Static constants
     //
     private static final int TEXT_ROWS = 10;
-    private static final int TEXT_COLS = 60;
+    private static final int TEXT_COLS = 50;
     private static final int KEY_COLS = 20;
     private static final int HOST_COLS = 30;
     private static final int PORT_COLS = 5;
     private static final int USERNAME_COLS = 20;
-    private static final Dimension BUTTON_SIZE = new Dimension(200, 30);
+    private static final Dimension BUTTON_SIZE = new Dimension(180, 30);
     private static final Box.Filler BUTTON_SPACING =
             (Box.Filler) Box.createRigidArea(new Dimension(40, 15));
-    private static final Box.Filler SMALL_SPACING =
-            (Box.Filler) Box.createRigidArea(new Dimension(10, 10));
-    private static final Border ETCHED_BORDER =
+    private static final Border BORDER =
             BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
+    private static final Border EMPTY_BORDER =
+            BorderFactory.createEmptyBorder(3, 3, 3, 3);
 
     //
     // Object fields
@@ -40,6 +41,10 @@ public class ClientGUI
     private final JTextField portField;
     private final JTextField usernameField;
     private final JTextField textEntryField;
+    // Login dialog
+    private final JDialog loginDialog;
+    private final JTextField ldUsernameField;
+    private final JTextField ldPasswordField;
 
     // Top-level GUI component
     private final JFrame frame;
@@ -90,10 +95,10 @@ public class ClientGUI
         portField = new JTextField(PORT_COLS);
         usernameField = new JTextField(USERNAME_COLS);
         textEntryField = new JTextField(TEXT_COLS);
-        // Place each in its own panel with a label (an "item")
+        // Place each in its own panel with a label.
         JPanel cipherNameItem = createItem("Cipher Name", cipherNameCombo);
-        JPanel cipherEnabledItem = createItem("Enabled", cipherEnableCheckBox);
         JPanel cipherKeyItem = createItem("Cipher Key", cipherKeyField);
+        JPanel cipherEnabledItem = createItem("Enabled", cipherEnableCheckBox);
         JPanel hostnameItem = createItem("Host Name", hostnameField);
         JPanel portItem = createItem("Port Number", portField);
         JPanel usernameItem = createItem("Username", usernameField);
@@ -126,19 +131,23 @@ public class ClientGUI
         //
 
         // Cipher Options
-        JPanel cipherNameEnabledItem = createBoxPanel(
-                BoxLayout.LINE_AXIS, cipherNameItem, cipherEnabledItem);
-        cipherNameEnabledItem.setAlignmentX(Component.LEFT_ALIGNMENT);
+        cipherNameItem.setAlignmentX(Component.LEFT_ALIGNMENT);
         cipherKeyItem.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JPanel cipherOptionPanel = createBoxPanel(BoxLayout.PAGE_AXIS,
-                cipherNameEnabledItem, cipherKeyItem);
-        cipherOptionPanel.setBorder(ETCHED_BORDER);
+        cipherEnabledItem.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel cipherInnerOptionPanel = createBoxPanel(Y_AXIS,
+                cipherNameItem,
+                cipherKeyItem,
+                cipherEnabledItem);
+        cipherInnerOptionPanel.setBorder(EMPTY_BORDER);
+        JPanel cipherOptionPanel = new JPanel(new BorderLayout());
+        cipherOptionPanel.add(cipherInnerOptionPanel, BorderLayout.WEST);
+        cipherOptionPanel.setBorder(BORDER);
 
         // Control Buttons
         JPanel controlButtonPanel = new JPanel();
         controlButtonPanel.setLayout(
-                new BoxLayout(controlButtonPanel, BoxLayout.PAGE_AXIS));
-        controlButtonPanel.setBorder(ETCHED_BORDER);
+                new BoxLayout(controlButtonPanel, BoxLayout.Y_AXIS));
+        controlButtonPanel.setBorder(BORDER);
         JButton[] controlBtns = {
                 clearBtn, helpBtn, listusersBtn,
                 loginBtn, logoutBtn, sendfileBtn
@@ -152,15 +161,21 @@ public class ClientGUI
         controlButtonPanel.add(BUTTON_SPACING);
 
         // Connection Panel
-        JPanel hostInfo =
-                createBoxPanel(BoxLayout.LINE_AXIS, hostnameItem, portItem);
-        JPanel cnxSettings =
-                createBoxPanel(BoxLayout.PAGE_AXIS, hostInfo, usernameItem);
+        hostnameItem.setAlignmentX(Component.LEFT_ALIGNMENT);
+        portItem.setAlignmentX(Component.LEFT_ALIGNMENT);
+        usernameItem.setAlignmentX(Component.LEFT_ALIGNMENT);
         JPanel cnxBtns =
-                createBoxPanel(BoxLayout.LINE_AXIS, connectBtn, disconnectBtn);
-        JPanel connectionPanel =
-                createBoxPanel(BoxLayout.PAGE_AXIS, cnxSettings, cnxBtns);
-        connectionPanel.setBorder(ETCHED_BORDER);
+                createBoxPanel(X_AXIS, connectBtn, disconnectBtn);
+        cnxBtns.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel connectionInnerPanel = createBoxPanel(Y_AXIS,
+                hostnameItem,
+                portItem,
+                usernameItem,
+                cnxBtns);
+        connectionInnerPanel.setBorder(EMPTY_BORDER);
+        JPanel connectionPanel = new JPanel(new BorderLayout());
+        connectionPanel.add(connectionInnerPanel, BorderLayout.WEST);
+        connectionPanel.setBorder(BORDER);
 
         // Conversation Panel
         JTextArea conversationArea = new JTextArea(TEXT_ROWS, TEXT_COLS);
@@ -173,15 +188,16 @@ public class ClientGUI
         conversationPanel.add(caScrollPane, BorderLayout.CENTER);
 
         // TextEntry Panel
-        // Not much to do; use textEntryItem. Just set its border.
-        textEntryItem.setBorder(ETCHED_BORDER);
+        JPanel textEntryPanel = createBoxPanel(BoxLayout.Y_AXIS);
+        textEntryItem.setBorder(EMPTY_BORDER);
+        textEntryPanel.add(textEntryItem);
+        textEntryPanel.setBorder(BORDER);
 
         //
         // Put it all together.
         //
         JPanel leftPanel = new JPanel();
         leftPanel.setLayout(new BorderLayout());
-        //leftPanel.setBorder(ETCHED_BORDER);
         leftPanel.add(cipherOptionPanel, BorderLayout.NORTH);
         leftPanel.add(controlButtonPanel, BorderLayout.CENTER);
 
@@ -189,16 +205,17 @@ public class ClientGUI
         mainPanel.setLayout(new BorderLayout());
         mainPanel.add(connectionPanel, BorderLayout.NORTH);
         mainPanel.add(conversationPanel, BorderLayout.CENTER);
-        mainPanel.add(textEntryItem, BorderLayout.SOUTH);
+        mainPanel.add(textEntryPanel, BorderLayout.SOUTH);
 
         frame = new JFrame("Clack");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLayout(
-                new BoxLayout(frame.getContentPane(), BoxLayout.LINE_AXIS));
-        frame.add(leftPanel);
-        frame.add(mainPanel);
+        frame.setLayout(new BorderLayout());
+        frame.add(leftPanel, BorderLayout.WEST);
+        frame.add(mainPanel, BorderLayout.CENTER);
 
-        // Additional component initialization.
+        //
+        // Additional initializations
+        //
         cipherEnableCheckBox.setEnabled(true);
         cipherEnableCheckBox.setSelected(false);
         clearBtn.setEnabled(true);
@@ -209,6 +226,50 @@ public class ClientGUI
         setCipherManagerToOptions(cipherManager);
         cipherManagerOther = new CipherManager();
         setCipherManagerToOptions(cipherManagerOther);
+
+        //
+        // Create login dialog (but don't show yet)
+        //
+        loginDialog = new JDialog(frame, "Login", true);
+        loginDialog.setLayout(new BoxLayout(loginDialog.getContentPane(),
+                BoxLayout.Y_AXIS));
+        ldUsernameField = new JTextField(USERNAME_COLS);
+        JPanel ldUsernameItem = createItem("Username", ldUsernameField);
+        ldPasswordField = new JTextField(USERNAME_COLS);
+        JPanel ldPasswordItem = createItem("Password", ldPasswordField);
+        JButton ldOKBtn = new JButton("OK");
+        JButton ldCancelBtn = new JButton("Cancel");
+        JPanel ldButtons =
+                createBoxPanel(X_AXIS, ldOKBtn, ldCancelBtn);
+        ldButtons.setBorder(EMPTY_BORDER);
+        JPanel loginPanel = createBoxPanel(Y_AXIS,
+                ldUsernameItem,
+                ldPasswordItem,ldButtons);
+        loginPanel.setBorder(EMPTY_BORDER);
+        loginDialog.add(loginPanel);
+        loginDialog.pack();
+        Dimension ldDimension =
+                new Dimension(loginDialog.getWidth(), loginDialog.getHeight());
+        loginDialog.setMaximumSize(ldDimension);
+        loginDialog.setMinimumSize(ldDimension);
+        loginDialog.setPreferredSize(ldDimension);
+        loginDialog.setResizable(false);
+        loginDialog.setVisible(false);
+
+        ldOKBtn.addActionListener(event -> {
+            conversationArea.append("Log In: clicked OK: "
+                    + "username=" + ldUsernameField.getText()
+                    + ", password=" + ldPasswordField.getText() + "\n");
+            loginDialog.setVisible(false);
+        });
+
+        ldCancelBtn.addActionListener(event -> {
+            conversationArea.append("Log In: clicked Cancel: "
+                    + "username=" + ldUsernameField.getText()
+                    + ", password=" + ldPasswordField.getText() + "\n");
+            loginDialog.setVisible(false);
+        });
+
 
         //
         // Actions
@@ -229,20 +290,8 @@ public class ClientGUI
         listusersBtn.addActionListener( event ->
                 conversationArea.append("List Users: clicked\n"));
         loginBtn.addActionListener(event -> {
-            String result = JOptionPane.showInputDialog(
-                    frame,
-                    "Enter password for " + usernameField.getText(),
-                    "Enter password",
-                    JOptionPane.PLAIN_MESSAGE
-            );
-            if (result == null) {
-                result = "Log In: clicked Cancel\n";
-            } else {
-                result = "Log In: clicked OK: username='"
-                        + usernameField.getText()
-                        + "', password='" + result + "'\n";
-            }
-            conversationArea.append(result);
+            ldUsernameField.setText(usernameField.getText());
+            loginDialog.setVisible(true);
         });
         logoutBtn.addActionListener(event -> {
             String[] options = {"Yes", "Cancel"};
@@ -263,7 +312,7 @@ public class ClientGUI
         });
         textEntryField.addActionListener(event -> {
             String text = textEntryField.getText();
-            String response = "> " + text;
+            String response = "> " + text + "\n";
             if (cipherEnableCheckBox.isSelected()) {
                 // response w/ encryption
                 String prepText = cipherManager.prep(text);
@@ -365,17 +414,25 @@ public class ClientGUI
     }
 
     /**
-     * Creates a JPanel containing a label and a component,
-     * with the label to the left of the component, and the JPanel
-     * using a BoxLayout.
-     * @param label the label to use
+     * Creates a JPanel containing a label and a component, with the
+     * label to the left of the component, and the JPanel using a
+     * BoxLayout. Component's border is set to BORDER.
+     * @param labelStr the label to use
      * @param jc the component to label
      * @return a JPanel containing the label and component.
      */
-    private JPanel createItem(String label, JComponent jc) {
-        return createBoxPanel(BoxLayout.LINE_AXIS,
-                new JLabel(label),
-                jc);
+    private JPanel createItem(String labelStr, JComponent jc) {
+        JLabel label = new JLabel(labelStr);
+        label.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
+        jc.setBorder(BORDER);
+        label.setAlignmentY(Component.TOP_ALIGNMENT);
+        jc.setAlignmentY(Component.TOP_ALIGNMENT);
+        JPanel jcPanel = new JPanel();
+        jcPanel.add(jc);
+        JPanel itemPanel = new JPanel(new BorderLayout());
+        itemPanel.add(label, BorderLayout.WEST);
+        itemPanel.add(jcPanel, BorderLayout.CENTER);
+        return itemPanel;
     }
 
     /**
@@ -387,13 +444,18 @@ public class ClientGUI
      * @return a JPanel containing components
      */
     private JPanel createBoxPanel(int axis, JComponent... jcs) {
+        Border border;
+        if (axis == X_AXIS || axis == LINE_AXIS) {
+            border = BorderFactory.createEmptyBorder(0, 3, 0, 3);
+        } else {
+            border = BorderFactory.createEmptyBorder(3, 0, 3, 0);
+        }
         JPanel jp = new JPanel();
         jp.setLayout(new BoxLayout(jp, axis));
-        jp.add(SMALL_SPACING);
         jp.add(Box.createGlue());
         for (JComponent jc : jcs) {
+            jc.setBorder(border);
             jp.add(jc);
-            jp.add(SMALL_SPACING);
             jp.add(Box.createGlue());
         }
         return jp;
