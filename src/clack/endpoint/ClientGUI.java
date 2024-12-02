@@ -7,6 +7,8 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EtchedBorder;
 import java.awt.*;
+
+import static clack.cipher.CharacterCipher.group;
 import static javax.swing.BoxLayout.*;
 
 public class ClientGUI
@@ -20,6 +22,7 @@ public class ClientGUI
     private static final int HOST_COLS = 30;
     private static final int PORT_COLS = 5;
     private static final int USERNAME_COLS = 20;
+    private static final int CIPHER_GROUP_SIZE = 5;
     private static final Dimension BUTTON_SIZE = new Dimension(180, 30);
     private static final Box.Filler BUTTON_SPACING =
             (Box.Filler) Box.createRigidArea(new Dimension(40, 15));
@@ -276,9 +279,23 @@ public class ClientGUI
         //
         cipherEnableCheckBox.addActionListener(event -> {
             if (cipherEnableCheckBox.isSelected()) {
-                setCipherManagerToOptions(cipherManager);
-                setCipherManagerToOptions(cipherManagerOther);
-                disableAll(cipherNameCombo, cipherKeyField);
+                try {
+                    setCipherManagerToOptions(cipherManager);
+                    setCipherManagerToOptions(cipherManagerOther);
+                    disableAll(cipherNameCombo, cipherKeyField);
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(
+                            frame,
+                            e.getMessage() + ".\n"
+                                    + "Please try a different cipher or key.",
+                            cipherNameCombo.getSelectedItem() + " Problem",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                    cipherEnableCheckBox.setSelected(false);
+                    cipherManager.setEnabled(false);
+                    cipherManagerOther.setEnabled(false);
+                    enableAll(cipherNameCombo, cipherKeyField);
+                }
             } else {
                 enableAll(cipherNameCombo, cipherKeyField);
             }
@@ -326,9 +343,12 @@ public class ClientGUI
                 }
                 response =
                         "Clear > " + text + "\n"
-                                + "Prepped > " + prepText + "\n"
-                                + "Encrypted > " + cipherText + "\n"
-                                + "Decrypted > " + decrypted + "\n";
+                                + "Prepped > "
+                                + group(prepText, CIPHER_GROUP_SIZE) + "\n"
+                                + "Encrypted > "
+                                + group(cipherText, CIPHER_GROUP_SIZE) + "\n"
+                                + "Decrypted > "
+                                + group(decrypted, CIPHER_GROUP_SIZE) + "\n";
             }
             conversationArea.append(response);
             textEntryField.setText("");
@@ -372,25 +392,18 @@ public class ClientGUI
         frame.setVisible(true);
     }
 
+    /**
+     * Sets the given cipher manager's option fields so they match those
+     * in the GUI.
+     * @param cm the cipher manager to take settings from.
+     * @throws IllegalArgumentException if cipher/key combo not valid.
+     */
     private void setCipherManagerToOptions(CipherManager cm)
     {
-        String cipherName = String.valueOf(cipherNameCombo.getSelectedItem());
-        String key = String.valueOf(cipherKeyField.getText());
-        try {
-            cm.setEnabled(cipherEnableCheckBox.isSelected());
-            cm.setKey(key);
-            cm.setCipher(cipherName);
-        } catch (IllegalArgumentException e) {
-            JOptionPane.showMessageDialog(
-                    frame,
-                    "Problem with " + cipherName + ": "
-                            + e.getMessage()
-                            + ". Please try a different cipher or key.",
-                    "Cipher Problem",JOptionPane.ERROR_MESSAGE
-            );
-            cipherEnableCheckBox.setSelected(false);
-            enableAll(cipherNameCombo, cipherKeyField);
-        }
+        cm.setCipherOptions(
+                String.valueOf(cipherNameCombo.getSelectedItem()),
+                cipherKeyField.getText(),
+                cipherEnableCheckBox.isSelected());
     }
 
     /**

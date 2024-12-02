@@ -7,7 +7,10 @@ import java.util.List;
 
 /**
  * This class maintains cipher options, manages the current cipher object,
- * and preps/encrypts/decrypts strings using that cipher object.
+ * and preps/encrypts/decrypts strings using that cipher object. The current
+ * cipher and key are checked for compatibility when: a CipherManager is
+ * constructed; the enabled flag is set to true; or the cipher or key is set
+ * while the enabled flag is true.
  * <p>
  * This class also provides a static list of synonyms for 'true' and
  * 'false' that users may enter when enabling/disabling encryption.
@@ -62,13 +65,13 @@ public class CipherManager
 
     /**
      * Creates a new CipherManager with default settings (disabled,
-     * NULL_CIPHER, "key").
+     * NULL_CIPHER, "KEY").
      * @throws IllegalArgumentException if cipher cannot be instantiated, or
      *                                  key is invalid for the cipher.
     */
     public CipherManager()
     {
-        this(false, CipherNameEnum.NULL_CIPHER, "key");
+        this(false, CipherNameEnum.NULL_CIPHER, "KEY");
     }
 
     /**
@@ -102,89 +105,138 @@ public class CipherManager
     }
 
     /**
-     * Sets the "enabled" option.
-     *
-     * @param enabled the value to which to set the option.
+     * Sets the argument cipher option(s). If the setting fails, an
+     * IllegalArgumentException is thrown and no changes are made.
+     * 
+     * @param cipherName name of the cipher to use.
+     * @param key the key to use.
+     * @param enabled the setting for the 'enabled' flag.
+     * @throws IllegalArgumentException if options cannot be set.
      */
-    public void setEnabled(boolean enabled)
+    public void setCipherOptions(CipherNameEnum cipherName, String key, 
+            boolean enabled)
+            throws IllegalArgumentException
     {
+        CipherNameEnum oldCipherName = this.cipherName;
+        String oldKey = this.key;
+        boolean oldEnabled = this.enabled;
+
+        this.cipherName = cipherName;
+        this.key = key;
         this.enabled = enabled;
+        try {
+            updateCipher();
+        } catch (IllegalArgumentException e) {
+            this.cipherName = oldCipherName;
+            this.key = oldKey;
+            this.enabled = oldEnabled;
+            throw e;
+        }
     }
 
     /**
-     * Sets the "enabled" option.
+     * Sets the argument cipher option(s). If the setting fails, an
+     * IllegalArgumentException is thrown and no changes are made.
+     *
+     * @param cipherNameStr name of the cipher to use, as a string.
+     * @param key the key to use.
+     * @param enabled the setting for the 'enabled' flag.
+     * @throws IllegalArgumentException if options cannot be set.
+     */
+    public void setCipherOptions(String cipherNameStr, String key,
+            boolean enabled)
+            throws IllegalArgumentException
+    {
+        setCipherOptions(CipherNameEnum.valueOf(cipherNameStr), key, enabled);
+    }
+
+    /**
+     * Sets the argument cipher option(s). If the setting fails, an
+     * IllegalArgumentException is thrown and no changes are made.
+     * 
+     * @param cipherName name of the cipher to use.
+     * @param key        the key to use.
+     * @throws IllegalArgumentException if options cannot be set.
+     */
+    public void setCipherOptions(CipherNameEnum cipherName, String key) 
+            throws IllegalArgumentException
+    {
+        setCipherOptions(cipherName, key, this.enabled);
+    }
+
+    /**
+     * Sets the argument cipher option(s). If the setting fails, an
+     * IllegalArgumentException is thrown and no changes are made.
+     *
+     * @param cipherName name the cipher to use.
+     * @throws IllegalArgumentException if options cannot be set.
+     */
+    public void setCipherOptions(CipherNameEnum cipherName)
+            throws IllegalArgumentException
+    {
+        setCipherOptions(cipherName, this.key, this.enabled);
+    }
+
+    /**
+     * Sets the argument cipher option(s). If the setting fails, an
+     * IllegalArgumentException is thrown and no changes are made.
+     *
+     * @param key the key to use.
+     * @throws IllegalArgumentException if options cannot be set.
+     */
+    public void setCipherOptions(String key)
+            throws IllegalArgumentException
+    {
+        setCipherOptions(this.cipherName, key, this.enabled);
+    }
+
+    /**
+     * Sets the 'enabled' option. If the setting fails, an
+     * IllegalArgumentException is thrown and no changes are made.
+     *
+     * @param enabled the enabled setting to use.
+     * @throws IllegalArgumentException if options cannot be set.
+     */
+    public void setEnabled(boolean enabled)
+            throws IllegalArgumentException
+    {
+        setCipherOptions(this.cipherName, this.key, enabled);
+    }
+
+    /**
+     * Sets the 'enabled' option. If the setting fails, an
+     * IllegalArgumentException is thrown and no changes are made.
      *
      * @param str string found in either trueSynonyms or falseSynonyms.
-     * @throws IllegalArgumentException if str is null, or not in
-     *                                  either of trueSynonyms or falseSynonyms.
+     * @throws IllegalArgumentException if option cannot be set.
      */
     public void setEnabled(String str)
+            throws IllegalArgumentException
     {
         if (str == null) {
-            throw new IllegalArgumentException("str is null");
+            throw new IllegalArgumentException("string argument is null");
         }
 
+        boolean enabled;
         str = str.toUpperCase();
         if (trueSynonyms.contains(str)) {
-            setEnabled(true);
+            enabled = true;
         } else if (falseSynonyms.contains(str)) {
-            setEnabled(false);
+            enabled = false;
         } else {
             throw new IllegalArgumentException(
                     "'" + str + "' not a boolean synonym");
         }
-    }
 
-    /**
-     * Sets the "cipherName" option, then creates that type of cipher
-     * object, initializes it with the value of the "key" option, and
-     * sets the current cipher to the new cipher object.
-     *
-     * @param cipherName the name of the cipher type to use.
-     * @throws IllegalArgumentException if cipher cannot be instantiated, or
-     *                                  current key is invalid for the cipher.
-     */
-    public void setCipher(CipherNameEnum cipherName)
-            throws IllegalArgumentException
-    {
-        this.cipherName = cipherName;
-        updateCipher();
+        setCipherOptions(this.cipherName, this.key, enabled);
     }
-
+    
     /**
-     * Sets the "cipherName" option, then creates that type of cipher
-     * object, initializes it with the value of the "key" option, and
-     * sets the current cipher to the new cipher object.
-     *
-     * @param str the name of the cipher type to use, as a string.
-     * @throws IllegalArgumentException if cipher cannot be instantiated, or
-     *                                  current key is invalid for the cipher,
-     *                                  or string does not name a cipher.
-     */
-    public void setCipher(String str)
-            throws IllegalArgumentException
-    {
-        setCipher(CipherNameEnum.valueOf(str.toUpperCase()));
-    }
-
-    /**
-     * Sets the "key" option, then creates a new cipher object (of the
-     * type given by the "cipherName" option) initialized with the new
-     * key, and sets the current cipher to the new cipher object.
-     *
-     * @param key the key for the current cipher.
-     * @throws IllegalArgumentException if key is invalid for the cipher.
-     */
-    public void setKey(String key)
-            throws IllegalArgumentException
-    {
-        this.key = key;
-        updateCipher();
-    }
-
-    /**
-     * Create a new cipher object based on the current values of the "key"
+     * Creates a new cipher object based on the current values of the "key"
      * and "cipherName" options, and makes it the current cipher object.
+     * If callers want to restore previous settings should this method throw,
+     * the caller is responsible for saving the old settings, and restoring
+     * them in a catch clause.
      *
      * @throws IllegalArgumentException if cipher cannot be instantiated, or
      *                                  key is invalid for the cipher.
@@ -234,8 +286,13 @@ public class CipherManager
         if (om.getValue() != null) {
             try {
                 switch (om.getOption()) {
-                    case CIPHER_KEY -> setKey(om.getValue());
-                    case CIPHER_NAME -> setCipher(om.getValue());
+                    case CIPHER_KEY ->
+                            setCipherOptions(om.getValue());
+                    case CIPHER_NAME -> {
+                        CipherNameEnum cne =
+                                CipherNameEnum.valueOf(om.getValue());
+                        setCipherOptions(cne);
+                    }
                     case CIPHER_ENABLE -> setEnabled(om.getValue());
                 }
             } catch (Exception e) {
