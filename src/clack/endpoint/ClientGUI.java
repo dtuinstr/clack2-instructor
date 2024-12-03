@@ -16,6 +16,8 @@ public class ClientGUI
     //
     // Static constants
     //
+    private static final String DEFAULT_HOST = "localhost";
+    private static final String DEFAULT_PORT = "4466";
     private static final int TEXT_ROWS = 10;
     private static final int TEXT_COLS = 50;
     private static final int KEY_COLS = 20;
@@ -53,6 +55,7 @@ public class ClientGUI
     private final JFrame frame;
 
     // Other
+    private Client client;
     private final CipherManager cipherManager;
     // When testing, one-time pad needs a copy of the cipher manager to
     // simulate the other end's pad, so pads stay in sync.
@@ -94,8 +97,8 @@ public class ClientGUI
         cipherEnableCheckBox.setEnabled(false);
         cipherKeyField = new JTextField(KEY_COLS);
         cipherKeyField.setText("THEKEY");
-        hostnameField = new JTextField(HOST_COLS);
-        portField = new JTextField(PORT_COLS);
+        hostnameField = new JTextField(DEFAULT_HOST, HOST_COLS);
+        portField = new JTextField(DEFAULT_PORT, PORT_COLS);
         usernameField = new JTextField(USERNAME_COLS);
         textEntryField = new JTextField(TEXT_COLS);
         // Place each in its own panel with a label.
@@ -273,7 +276,6 @@ public class ClientGUI
             loginDialog.setVisible(false);
         });
 
-
         //
         // Actions
         //
@@ -366,6 +368,20 @@ public class ClientGUI
                 disableAll(hostnameField, portField, usernameField);
                 enableAll(controlBtns);
                 connectBtn.setEnabled(false);
+                try {
+                    client = new Client(hostnameField.getText(),
+                            Integer.parseInt(portField.getText()),
+                            usernameField.getText());
+                    client.start();
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(frame, """
+                                    Please try again with different
+                                    host, port, and/or username.
+                                    """ + e,
+                            "Could not connect",
+                            JOptionPane.ERROR_MESSAGE
+                            );
+                }
             }
         });
         disconnectBtn.addActionListener( event -> {
