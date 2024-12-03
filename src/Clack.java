@@ -1,4 +1,5 @@
 import clack.endpoint.Client;
+import clack.endpoint.ClientGUI;
 import clack.endpoint.Server;
 
 /**
@@ -17,17 +18,16 @@ import clack.endpoint.Server;
  */
 public class Clack
 {
-    private final static String USAGE =
-            "Usage: java Clack client <server name> <server port>\n"
-                    + "       java Clack server <server port>";
+    private final static String USAGE = """
+         Usage: java Clack client <server name> <server port>
+                java Clack GUI
+                java Clack server <server port>""";
 
     public static void main(String[] args)
     {
-        if (args.length < 2) {
-            System.err.println(USAGE);
-        } else if (args.length == 2
-                && args[0].equalsIgnoreCase("server"))
-        {
+        if (args.length == 1 && args[0].equalsIgnoreCase("GUI")) {
+            new ClientGUI();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("server")) {
             try {
                 int port = Integer.parseInt(args[1]);
                 Server server = new Server(port, Server.DEFAULT_SERVERNAME);
@@ -39,9 +39,7 @@ public class Clack
                 System.err.println(e.getMessage());
                 System.err.println(USAGE);
             }
-        } else if (args.length == 3
-                && args[0].equalsIgnoreCase("client"))
-        {
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("client")) {
             try {
                 String serverName = args[1];
                 int port = Integer.parseInt(args[2]);

@@ -47,8 +47,6 @@ public class Client
     public Client(String hostname, int port, String username)
             throws NoSuchAlgorithmException
     {
-        ClientGUI cGUI = new ClientGUI();
-
         if (port < 1 || port > 49151) {
             throw new IllegalArgumentException(
                     "Port " + port + " not in range 1 - 49151.");
@@ -154,7 +152,9 @@ public class Client
                     default -> "UNEXPECTED MESSAGE: " + inMsg;
                 });
             } while (outMsg.getMsgType() != LOGOUT);
-        }   // Streams and sockets closed by try-with-resources
+        }   catch (Exception e) {
+            System.err.println("Error: " + e);
+        }
 
         System.out.println("Connection to " + hostname + ":" + port
                 + " closed, exiting.");

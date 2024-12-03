@@ -119,31 +119,47 @@ public class Server
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server starting on port " + port + ".");
             System.out.println("Ctrl + C to exit.");
+
             while (true) {
-                try (   // Wait for connection, then build streams.
-                        Socket clientSocket = serverSocket.accept();
-                        ObjectInputStream inObj =
-                                new ObjectInputStream(clientSocket.getInputStream());
-                        ObjectOutputStream outObj =
-                                new ObjectOutputStream(clientSocket.getOutputStream());
-                ) {
-                    // Connection made. Request login.
-                    userLogin(inObj, outObj);
-
-                    // Login successful. Converse with client.
-                    converse(inObj, outObj);
-
-                    System.out.println("=== Terminating connection. ===");
-                }  catch (IOException e) {
-                    System.out.println(
-                            "=== Abnormal end: " + e + " ===");
-                }   // Streams and socket closed by try-with-resources.
+                Socket clientSocket = serverSocket.accept();
+                System.out.println("Opening session on port "
+                        + clientSocket.getPort());
+                Thread thread = new Thread(() ->
+                        session(clientSocket));
+                thread.start();
             }   // end while(true)
         }   // Server socket closed by try-with-resources.
     }
 
-
     /**
+     * Encapsulate a clack session, from stream creation to use logout.
+     * @param socket the socket to use to create streams
+     */
+    private void session(Socket socket)
+    {
+        int port = socket.getPort();
+        System.out.println("=== Opening session on port " + port + " ===");
+
+        try (
+                ObjectOutputStream outObj =
+                        new ObjectOutputStream(socket.getOutputStream());
+                ObjectInputStream inObj =
+                        new ObjectInputStream(socket.getInputStream());
+        ) {
+            userLogin(inObj, outObj);
+            converse(inObj, outObj);
+            System.out.println("=== Terminating session on port "
+                    + port
+                    + " ===");
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("=== ABNORMAL TERMINATION on port "
+                    + port
+                    + " ===\n"
+                    + e);
+        } // Object streams closed by try-with-resources.
+    }
+
+/**
      * Repeatedly prompt user for password, returns only when
      * user sends a LoginMessage with valid username and password.
      * This acts as a gatekeeper to the main conversation.
